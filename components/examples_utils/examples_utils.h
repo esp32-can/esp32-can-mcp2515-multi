@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "can_message.h"
+#include "driver/twai.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -154,14 +154,14 @@ uint64_t restore_timestamp40(const unit40_big_endian_t *src_ptr);
  * @param heartbeat Sequence number (auto-increments)
  * @param message Pointer to message structure to fill
  */
-void fullfill_test_messages(uint8_t sender_id, uint8_t heartbeat, can_message_t *message);
+void fullfill_test_messages(uint8_t sender_id, uint8_t heartbeat, twai_message_t *message);
 
 /**
  * @brief Sets a flag in an already-prepared test message
  * @param message Pointer to message with test_can_message_t payload
  * @param flag Flag bit to set (test_flag_bits_t)
  */
-static inline void set_test_flag(can_message_t *message, uint8_t flag)
+static inline void set_test_flag(twai_message_t *message, uint8_t flag)
 {
     test_can_message_t *p = (test_can_message_t*)message->data;
     test_flags_set(&p->flags, (test_flag_bits_t)flag);
@@ -182,7 +182,7 @@ static inline void set_test_flag(can_message_t *message, uint8_t flag)
  * @brief Prints CAN message details to console
  * @param message Pointer to message to print
  */
-void print_can_message(const can_message_t *message);
+void print_can_message(const twai_message_t *message);
 
 /**
  * @brief Increments heartbeat value (wraps at 255)
@@ -196,7 +196,7 @@ uint8_t next_heartbeat(const uint8_t heartbeat);
  * @param message Pointer to received message
  * @param print_during_receive If true, prints full message details
  */
-void process_received_message(can_message_t *message, const bool print_during_receive);
+void process_received_message(twai_message_t *message, const bool print_during_receive);
 
 /**
  * @brief Processes received message with per-sender statistics tracking
@@ -207,14 +207,14 @@ void process_received_message(can_message_t *message, const bool print_during_re
  * @param message Pointer to received message
  * @param print_during_receive If true, prints full message details
  */
-void process_received_message_multi(can_message_t *message, const bool print_during_receive);
+void process_received_message_multi(twai_message_t *message, const bool print_during_receive);
 
 /**
  * @brief Logs sent message (for debugging)
  * @param message Pointer to sent message
  * @param print_during_send If true, prints full message details
  */
-void debug_send_message(can_message_t *message, const bool print_during_send);
+void debug_send_message(twai_message_t *message, const bool print_during_send);
 
 /**
  * @brief Generic message logging function
@@ -222,7 +222,7 @@ void debug_send_message(can_message_t *message, const bool print_during_send);
  * @param message Pointer to message
  * @param print_details If true, prints full details; otherwise compact visualization
  */
-void log_message(const bool send, can_message_t *message, const bool print_details);
+void log_message(const bool send, twai_message_t *message, const bool print_details);
 
 /** @} */ // end of processing group
 

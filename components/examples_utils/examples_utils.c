@@ -24,7 +24,7 @@ uint64_t restore_timestamp40(const unit40_big_endian_t *src_ptr)
     return result;
 }
 
-void fullfill_test_messages(uint8_t sender_id, uint8_t heartbeat, can_message_t *message) 
+void fullfill_test_messages(uint8_t sender_id, uint8_t heartbeat, twai_message_t *message) 
 {
     if (message == NULL) {
         ESP_LOGE(TAG, "Invalid frame pointer");
@@ -34,24 +34,23 @@ void fullfill_test_messages(uint8_t sender_id, uint8_t heartbeat, can_message_t 
     // view to message->data (8 bytes) as a test_can_message_t
     test_can_message_t * payload = (test_can_message_t *)message->data;
 
-    message->id = TEST_MSG_ID;
-    message->extended_id = false;
-    message->rtr = false;
-    message->dlc = 8;
+    message->identifier = TEST_MSG_ID;
+    message->flags = 0; // standard, no RTR
+    message->data_length_code = 8;
     payload->sender_id = sender_id;
     payload->heartbeat = heartbeat;
     payload->flags.value = 0;
     store_timestamp40(esp_timer_get_time(), & (payload->timestamp40));
 } // get_test_messages
 
-void print_can_message(const can_message_t *message) {
+void print_can_message(const twai_message_t *message) {
     if (message == NULL) {
         ESP_LOGE(TAG, "Invalid frame pointer");
         return;
     }
     
-    printf("CAN message ID: %lu\n", message->id);
-    switch (message->id) {
+    printf("CAN message ID: %lu\n", message->identifier);
+    switch (message->identifier) {
         case TEST_MSG_ID:
             // view payload as test_can_message_t
             test_can_message_t *payload1 = (test_can_message_t *)message->data;
@@ -91,12 +90,12 @@ void print_can_message(const can_message_t *message) {
             break;
 
         default:
-            printf("Unknown message ID: %lu\n", message->id);
+            printf("Unknown message ID: %lu\n", message->identifier);
             break;
     }
         // debug print message->data
     printf("message->data (dec):|");
-    for (int i = 0; i < message->dlc; i++) {
+    for (int i = 0; i < message->data_length_code; i++) {
         printf("%03d|", message->data[i]);
     }
     printf("\n");
@@ -123,7 +122,7 @@ static uint64_t count_of_messages_for_log = 0;
 #define PRINT_NL_EVERY_N_MESSAGES (PRINT_DOT_EVERY_N_MESSAGES*MAX_INDEX_ON_ONE_LINE)
 
 
-void log_message(const bool send, can_message_t *message, const bool print_details) {
+void log_message(const bool send, twai_message_t *message, const bool print_details) {
     if (print_details) {
         print_can_message(message);
     } else {
@@ -153,7 +152,7 @@ static uint8_t expected_heartbeat = 0;            // expected_heartbeat heartbea
 
 // ----------------------- single-sender processing -----------------------
 
-void process_received_message(can_message_t *message, const bool print_during_receive) {
+void process_received_message(twai_message_t *message, const bool print_during_receive) {
     if (message == NULL) {
         ESP_LOGE(TAG, "Invalid message pointer");
         return;
@@ -163,7 +162,7 @@ void process_received_message(can_message_t *message, const bool print_during_re
     } else {
         log_message(false, message, print_during_receive);        
     }
-    if (message->id == TEST_MSG_ID) {
+    if (message->identifier == TEST_MSG_ID) {
         test_can_message_t *payload = (test_can_message_t *)message->data;
 
         // Sequence check 
@@ -252,7 +251,7 @@ static char next_dot_char_for_sender(uint8_t sender_id)
     }
 }
 
-void process_received_message_multi(can_message_t *message, const bool print_during_receive)
+void process_received_message_multi(twai_message_t *message, const bool print_during_receive)
 {
     if (message == NULL) {
         ESP_LOGE(TAG, "Invalid message pointer");
@@ -336,7 +335,7 @@ void process_received_message_multi(can_message_t *message, const bool print_dur
     }
 }
 
-void debug_send_message(can_message_t *message, const bool print_during_send) {
+void debug_send_message(twai_message_t *message, const bool print_during_send) {
     if (message == NULL) {
         ESP_LOGE(TAG, "Invalid frame pointer");
         return;

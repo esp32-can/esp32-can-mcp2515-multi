@@ -533,20 +533,20 @@ can_dev_id_t canif_dev_id_of(can_dev_handle_t dev)
 // Messaging
 // ======================================================================================
 
-bool canif_send_to(can_dev_handle_t dev, const can_message_t* msg)
+bool canif_send_to(can_dev_handle_t dev, const twai_message_t* msg)
 {
-    if (!msg || msg->dlc > 8) return false;
+    if (!msg || msg->data_length_code > 8) return false;
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
     CAN_FRAME f;
-    f.can_id = msg->id; // Note: extended/rtr flags may be encoded by backend if needed
-    f.can_dlc = msg->dlc;
-    for (uint8_t i=0;i<msg->dlc;i++) f.data[i] = msg->data[i];
+    f.can_id = msg->identifier; // extended/rtr not encoded in backend
+    f.can_dlc = msg->data_length_code;
+    for (uint8_t i=0;i<msg->data_length_code;i++) f.data[i] = msg->data[i];
     return MCP2515_SendMessageAfterCtrlCheck(rt->h, &f) == ERROR_OK;
 }
 
-bool canif_receive_from(can_dev_handle_t dev, can_message_t* msg)
+bool canif_receive_from(can_dev_handle_t dev, twai_message_t* msg)
 {
     if (!msg) return false;
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
@@ -556,34 +556,33 @@ bool canif_receive_from(can_dev_handle_t dev, can_message_t* msg)
     ERROR_t rc = MCP2515_ReadMessageAfterStatCheck(rt->h, &f);
     if (rc != ERROR_OK) return false;
     if (f.can_dlc > 8) return false;
-    msg->id = f.can_id;
-    msg->dlc = f.can_dlc;
-    msg->extended_id = false; // not encoded by backend here
-    msg->rtr = false;
+    msg->identifier = f.can_id;
+    msg->data_length_code = f.can_dlc;
+    msg->flags = 0; // no EXT/RTR information available here
     for (uint8_t i=0;i<f.can_dlc;i++) msg->data[i] = f.data[i];
     return true;
 }
 
-bool canif_send_id(can_bus_id_t bus_id, can_dev_id_t dev_id, const can_message_t* msg)
+bool canif_send_id(can_bus_id_t bus_id, can_dev_id_t dev_id, const twai_message_t* msg)
 {
     can_dev_handle_t dev = canif_dev_get_by_id(bus_id, dev_id);
     if (!dev) return false;
     return canif_send_to(dev, msg);
 }
 
-bool canif_receive_id(can_bus_id_t bus_id, can_dev_id_t dev_id, can_message_t* msg)
+bool canif_receive_id(can_bus_id_t bus_id, can_dev_id_t dev_id, twai_message_t* msg)
 {
     can_dev_handle_t dev = canif_dev_get_by_id(bus_id, dev_id);
     if (!dev) return false;
     return canif_receive_from(dev, msg);
 }
 
-bool canif_send_target(can_target_t target, const can_message_t* msg)
+bool canif_send_target(can_target_t target, const twai_message_t* msg)
 {
     return canif_send_id(can_target_bus_id(target), can_target_dev_id(target), msg);
 }
 
-bool canif_receive_target(can_target_t target, can_message_t* msg)
+bool canif_receive_target(can_target_t target, twai_message_t* msg)
 {
     return canif_receive_id(can_target_bus_id(target), can_target_dev_id(target), msg);
 }
@@ -628,12 +627,12 @@ bool canif_multi_deinit_default(void)
     return all_closed;
 }
 
-bool canif_multi_send_default(const can_message_t* msg)
+bool canif_multi_send_default(const twai_message_t* msg)
 {
     return canif_send_to(canif_device_default(), msg);
 }
 
-bool canif_receive_default(can_message_t* msg)
+bool canif_receive_default(twai_message_t* msg)
 {
     return canif_receive_from(canif_device_default(), msg);
 }

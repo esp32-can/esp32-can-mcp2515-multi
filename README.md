@@ -20,7 +20,7 @@ Supports multiple MCP2515 controllers on one or more SPI buses, numeric bus/devi
   - Registry/lifecycle: `canif_register_bundle`, `canif_open_device`, `canif_open_all` ...
   - Messaging: `canif_send_to`, `canif_receive_from`, also `*_id`/`*_target`
   - Mode/bitrate, events, errors, filters/masks
-  - Helper type: `can_message_t`
+  - Message type: `twai_message_t` (ESP-IDF)
 
 - Internal backend: `mcp2515_multi_internal.h`
   - Low-level SPI/MCP2515 control: `MCP2515_*` API
@@ -73,7 +73,7 @@ canif_multi_init_default(&CAN_HW_CFG); // registers bundle and opens all devices
 can_bus_handle_t bus = canif_bus_default();
 for (size_t i = 0; i < canif_bus_device_count(bus); ++i) {
     can_dev_handle_t dev = canif_device_at(bus, i);
-    can_message_t msg = { .id = 0x123, .dlc = 2, .data = { 0xDE, 0xAD } };
+    twai_message_t msg = { .identifier = 0x123, .data_length_code = 2, .data = { 0xDE, 0xAD } };
     (void)canif_send_to(dev, &msg);
 }
 ```

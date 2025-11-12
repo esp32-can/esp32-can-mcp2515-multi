@@ -26,7 +26,7 @@
 #include "sdkconfig.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
-#include "can_message.h"
+#include "driver/twai.h"
 
 
 #ifdef __cplusplus
@@ -385,23 +385,23 @@ bool              canif_register_bundle(const mcp2515_bundle_config_t* bundle);
  * @param msg Pointer to message structure
  * @return true on successful transmission initiation, false otherwise
  */
-bool              canif_send_to(can_dev_handle_t dev, const can_message_t* msg);
+bool              canif_send_to(can_dev_handle_t dev, const twai_message_t* msg);
 
 // Receives a frame from the specified device handle if available (non-blocking).
 // Returns true if a frame was read into 'msg'.
-bool              canif_receive_from(can_dev_handle_t dev, can_message_t* msg);
+bool              canif_receive_from(can_dev_handle_t dev, twai_message_t* msg);
 
 // Sends a frame using numeric IDs; resolves to the target device at runtime.
-bool              canif_send_id(can_bus_id_t bus_id, can_dev_id_t dev_id, const can_message_t* msg);
+bool              canif_send_id(can_bus_id_t bus_id, can_dev_id_t dev_id, const twai_message_t* msg);
 
 // Receives a frame using numeric IDs; non-blocking.
-bool              canif_receive_id(can_bus_id_t bus_id, can_dev_id_t dev_id, can_message_t* msg);
+bool              canif_receive_id(can_bus_id_t bus_id, can_dev_id_t dev_id, twai_message_t* msg);
 
 // Sends a frame using a composite target (bus_id | dev_id).
-bool              canif_send_target(can_target_t target, const can_message_t* msg);
+bool              canif_send_target(can_target_t target, const twai_message_t* msg);
 
 // Receives a frame using a composite target (non-blocking).
-bool              canif_receive_target(can_target_t target, can_message_t* msg);
+bool              canif_receive_target(can_target_t target, twai_message_t* msg);
 
 /**
  * @brief High-level initialization helper: registers and opens a bundle
@@ -414,10 +414,10 @@ bool              canif_multi_init_default(const mcp2515_bundle_config_t* cfg);
 bool              canif_multi_deinit_default(void);
 
 /** @brief Sends a message using the default device */
-bool              canif_multi_send_default(const can_message_t* msg);
+bool              canif_multi_send_default(const twai_message_t* msg);
 
 /** @brief Receives a message from the default device */
-bool              canif_receive_default(can_message_t* msg);
+bool              canif_receive_default(twai_message_t* msg);
 
 /** @} */ // end of messaging group
 
