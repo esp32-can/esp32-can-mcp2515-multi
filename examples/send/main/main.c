@@ -3,9 +3,16 @@
 #include "examples_utils.h"
 #include "config_send.h"
 
-/*
- * Example: send_multi
- * Uses MCP2515 multi adapter with two TX controllers on SPI2 (per init_hardware.c configuration).
+/**
+ * @file main.c
+ * @brief CAN multi-sender example using polling transmission
+ * 
+ * This example demonstrates sending CAN messages from multiple MCP2515 devices.
+ * Each device sends test messages with heartbeat counter and timestamp at regular intervals.
+ * 
+ * Hardware configuration: See examples/config_send.h
+ * - 2 MCP2515 TX devices on SPI3
+ * - No interrupt pins (polling mode)
  */
 
 static const char *TAG = "send_multi";
@@ -15,7 +22,7 @@ extern "C"
 #endif
 void app_main(void)
 {
-    // Initialize MCP2515 multi library directly with bundle config, see config_hw_mcp2515_multi_send.h
+    // Initialize MCP2515 multi library with hardware configuration from config_send.h
     (void)canif_multi_init_default(&CAN_HW_CFG);
 
     const uint32_t send_interval_ms = 10;

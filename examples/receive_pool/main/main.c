@@ -4,6 +4,19 @@
 #include "config_receive.h"
 #include "esp_log.h"
 
+/**
+ * @file main.c
+ * @brief CAN multi-receiver example using polling reception
+ * 
+ * This example demonstrates receiving CAN messages from multiple MCP2515 devices
+ * using a polling approach. The main loop continuously polls all devices for
+ * incoming messages and processes them with per-sender statistics tracking.
+ * 
+ * Hardware configuration: See examples/config_receive.h
+ * - 3 MCP2515 RX devices on SPI2
+ * - Interrupt pins defined but not used (polling mode)
+ */
+
 static const char *TAG = "receive_poll_multi";
 
 #ifdef __cplusplus
@@ -11,7 +24,7 @@ extern "C"
 #endif
 void app_main(void)
 {
-    // Initialize MCP2515 multi library directly with bundle config, see config_hw_mcp2515_multi_receive.h
+    // Initialize MCP2515 multi library with hardware configuration from config_receive.h
     (void)canif_multi_init_default(&CAN_HW_CFG);
 
     const uint32_t receive_interval_ms = 1;

@@ -7,12 +7,23 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-/*
- * Example: receive_interrupt_multi
- *
- * Note: Hardware configuration (number of instances, CS/INT pins) je stanovena
- * v examples/init_hardware.c. Tento příklad si počet instancí načítá dynamicky
- * přes can_configured_instance_count().
+/**
+ * @file main.c
+ * @brief CAN multi-receiver example using interrupt-driven reception
+ * 
+ * This example demonstrates receiving CAN messages from multiple MCP2515 devices
+ * using an interrupt-driven approach. Each device has a producer task that polls
+ * for messages and queues them. A consumer task processes all messages from the queue
+ * with per-sender statistics tracking.
+ * 
+ * Hardware configuration: See examples/config_receive.h
+ * - 3 MCP2515 RX devices on SPI2
+ * - Interrupt pins connected (can be used for future interrupt-based reception)
+ * 
+ * Architecture:
+ * - One producer task per MCP2515 device (polls and queues messages)
+ * - One consumer task (processes all queued messages)
+ * - FreeRTOS queue for inter-task communication
  */
 
 static const char *TAG = "receive_interrupt_multi";
@@ -66,7 +77,7 @@ extern "C"
 #endif
 void app_main(void)
 {
-    // Initialize MCP2515 multi library directly with bundle config, see config_hw_mcp2515_multi_receive.h
+    // Initialize MCP2515 multi library with hardware configuration from config_receive.h
     (void)canif_multi_init_default(&CAN_HW_CFG);
 
     rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(can_message_t));
