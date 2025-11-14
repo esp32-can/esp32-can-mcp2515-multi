@@ -1,5 +1,5 @@
 version: "1.0.0"
-description: "Extended CAN driver for ESP32 using multiple MCP2515 controllers over SPI"
+description: "Extended CAN driver for ESP32 using multiple MCP25xxx controllers over SPI"
 url: "https://github.com/esp32-can/esp32-can-mcp2515-multi"
 dependencies:
   idf:

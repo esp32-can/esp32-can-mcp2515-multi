@@ -1,20 +1,20 @@
 # esp32-can-mcp2515-multi
-Extended CAN driver for ESP32 using multiple MCP2515 controllers over SPI.
+Extended CAN driver for ESP32 using multiple MCP25xxx controllers over SPI.
 
 Supports independent or parallel operation of several CAN buses with shared SPI interface and separate CS/INT lines.
 Designed for ESP-IDF framework (C language).
 
-![ESP32 with multiple MCP2515 CAN controllers](doc/ESP32_MCP2515_CAN_steampunk400x400.png)
+![ESP32 with multiple MCP25xxx CAN controllers](doc/ESP32_MCP25xxx_CAN_steampunk400x400.png)
 
-High-level multi-device MCP2515 library for ESP-IDF with a stable public 
+High-level multi-device MCP25xxx library for ESP-IDF with a stable public 
 interface and a separate internal backend. 
-Supports multiple MCP2515 controllers on one or more SPI buses, numeric bus/device IDs, and a thin facade API (`canif_*`) for messaging and control.
+Supports multiple MCP25xxx controllers on one or more SPI buses, numeric bus/device IDs, and a thin facade API (`canif_*`) for messaging and control.
 
-**Note:** While designed for multi-device setups, this library is equally well-suited for single MCP2515 device applications. The unified API provides a clean, consistent interface regardless of the number of devices.
+**Note:** While designed for multi-device setups, this library is equally well-suited for single MCP25xxx device applications. The unified API provides a clean, consistent interface regardless of the number of devices.
 
 ## Headers and layering
 
-- Public API: `mcp2515_multi.h`
+- Public API: `mcp25xxx_multi.h`
   - Configuration types: `mcp_spi_bus_config_t`, `mcp2515_device_config_t`, `mcp2515_bundle_config_t`
   - Numeric IDs/handles: `can_bus_id_t`, `can_dev_id_t`, `can_bus_handle_t`, `can_dev_handle_t`, `can_target_t`
   - Registry/lifecycle: `canif_register_bundle`, `canif_open_device`, `canif_open_all` ...
@@ -23,7 +23,7 @@ Supports multiple MCP2515 controllers on one or more SPI buses, numeric bus/devi
   - Message type: `twai_message_t` (ESP-IDF)
 
 - Internal backend: `mcp2515_multi_internal.h`
-  - Low-level SPI/MCP2515 control: `MCP2515_*` API
+  - Low-level SPI/MCP25xxx control: `MCP25xxx_*` API
   - Not exported to users; subject to change
 
 ## Hardware notes
@@ -31,7 +31,7 @@ Supports multiple MCP2515 controllers on one or more SPI buses, numeric bus/devi
 - Custom GPIO assignments are configurable (see [examples/config_send.h](examples/config_send.h) and [examples/config_receive.h](examples/config_receive.h) for templates).
 - Either SPI2 or SPI3 may be used (SPI1 is reserved for flash on most ESP32 variants).
 - Supported ESP32 variants: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and other ESP-IDF compatible chips.
-- Each MCP2515 device requires a CS (Chip Select) pin; optionally an INT (Interrupt) pin for event-driven reception.
+- Each MCP25xxx device requires a CS (Chip Select) pin; optionally an INT (Interrupt) pin for event-driven reception.
 
 ### Tested Hardware Configuration
 
@@ -46,7 +46,7 @@ This library has been successfully tested with the following hardware setup:
 - 5x [Adafruit CAN Bus BFF](https://learn.adafruit.com/adafruit-can-bus-bff) modules
   - 3 modules configured as receivers (RX)
   - 2 modules configured as transmitters (TX)
-  - Uses MCP25625 integrated circuit (combines MCP2515 CAN controller + MCP2551 CAN transceiver)
+  - Uses MCP25625 integrated circuit (combines MCP25xxx CAN controller + MCP2551 CAN transceiver)
   - **Important:** STBY/A1 pin connected to ground on all modules for normal operation mode
 
 ## Cloning the Repository
@@ -90,7 +90,7 @@ git submodule update --remote
 
 ## Quick start
 
-**Note:** These instructions work for both single and multiple MCP2515 devices. For a single device, simply configure a bundle with `device_count = 1`.
+**Note:** These instructions work for both single and multiple MCP25xxx devices. For a single device, simply configure a bundle with `device_count = 1`.
 
 1) Provide bundle configuration (one SPI bus + N devices), ideally as a `const` in a header near your example/app:
 
@@ -101,7 +101,7 @@ extern const mcp2515_bundle_config_t CAN_HW_CFG; // see examples for templates
 2) Initialize and open all devices in the bundle:
 
 ```c
-#include "mcp2515_multi.h"
+#include "mcp25xxx_multi.h"
 
 canif_multi_init_default(&CAN_HW_CFG); // registers bundle and opens all devices
 ```
@@ -122,7 +122,7 @@ for (size_t i = 0; i < canif_bus_device_count(bus); ++i) {
 - Public facade functions: `canif_*`
 - Public configuration types: `mcp_*` (bus/device/bundle)
 - Identifiers and messages: `can_*` (`can_message_t`, `can_bus_id_t`, ...)
-- Internal backend: `MCP2515_*`, `ERROR_t`
+- Internal backend: `MCP25xxx_*`, `ERROR_t`
 
 ## Project Structure
 
@@ -134,13 +134,13 @@ esp32-can-mcp2515-multi/
 ├── LICENSE                     # MIT License
 ├── README.md                   # This file
 ├── include/
-│   └── mcp2515_multi.h         # Public API header
+│   └── mcp25xxx_multi.h         # Public API header
 ├── src/
-│   ├── mcp2515_multi.c         # Public API implementation
-│   ├── mcp2515_multi_internal.c # Backend implementation
-│   └── mcp2515_multi_internal.h # Backend header (internal use only)
+│   ├── mcp25xxx_multi.c         # Public API implementation
+│   ├── mcp25xxx_multi_internal.c # Backend implementation
+│   └── mcp25xxx_multi_internal.h # Backend header (internal use only)
 ├── doc/
-│   └── ESP32_MCP2515_CAN_steampunk400x400.png # Documentation image
+│   └── ESP32_MCP25xxx_CAN_steampunk400x400.png # Documentation image
 ├── components/
 │   └── examples_utils/         # Utility functions for examples (git submodule)
 │       ├── CMakeLists.txt
@@ -194,7 +194,7 @@ esp32-can-mcp2515-multi/
 
 2. Include the header in your code:
    ```c
-   #include "mcp2515_multi.h"
+   #include "mcp25xxx_multi.h"
    ```
 
 3. The library will be automatically found by the ESP-IDF build system.
@@ -210,7 +210,7 @@ esp32-can-mcp2515-multi/
 
 2. Include the header in your code:
    ```c
-   #include "mcp2515_multi.h"
+   #include "mcp25xxx_multi.h"
    ```
 
 ### Method 3: ESP Component Registry (Future)
@@ -222,11 +222,11 @@ idf.py add-dependency "esp32-can-mcp2515-multi"
 
 ## Examples
 
-All examples are located in the `examples/` directory. Each example demonstrates different aspects of multi-MCP2515 operation.
+All examples are located in the `examples/` directory. Each example demonstrates different aspects of multi-MCP25xxx operation.
 
 ### Hardware Configuration
 
-**Important:** Hardware configuration (GPIO pins, SPI speed, MCP2515 crystal frequency, CAN bitrate) is defined in configuration header files located in the `examples/` directory:
+**Important:** Hardware configuration (GPIO pins, SPI speed, MCP25xxx crystal frequency, CAN bitrate) is defined in configuration header files located in the `examples/` directory:
 - [examples/config_send.h](examples/config_send.h) - Configuration for send example (2 TX devices on SPI3)
 - [examples/config_receive.h](examples/config_receive.h) - Configuration for receive examples (3 RX devices on SPI2)
 
@@ -238,8 +238,8 @@ Configuration includes:
 - **SPI bus wiring**: MISO, MOSI, SCLK pins
 - **Device-specific pins**: CS (Chip Select), INT (Interrupt), optional STBY/RST
 - **SPI parameters**: Clock speed (typically 10 MHz), mode, DMA channel
-- **MCP2515 hardware**: Crystal frequency (`MCP_8MHZ`, `MCP_16MHZ`, or `MCP_20MHZ`)
-- **CAN parameters**: Bitrate (e.g., `CAN_500KBPS`, `CAN_1000KBPS`), loopback mode
+- **MCP25xxx hardware**: Crystal frequency (`MCP25XXX_8MHZ`, `MCP25XXX_16MHZ`, or `MCP25XXX_20MHZ`)
+- **CAN parameters**: Bitrate (e.g., `MCP25XXX_500KBPS`, `MCP25XXX_1000KBPS`), loopback mode
 
 ### Environment Setup
 
@@ -291,7 +291,7 @@ ls /dev/cu.*
 ### Example 1: Send 
 Sending CAN messages to multiple independent buses (polling transmission).
 
-**Hardware configuration:** Edit [examples/config_send.h](examples/config_send.h) - 2 MCP2515 devices on SPI3 (TX only, no interrupt pins).
+**Hardware configuration:** Edit [examples/config_send.h](examples/config_send.h) - 2 MCP25xxx devices on SPI3 (TX only, no interrupt pins).
 
 **Application code:** [examples/send/main/main.c](examples/send/main/main.c)
 
@@ -311,7 +311,7 @@ idf.py -p /dev/ttyUSB0 flash monitor
 ### Example 2: Receive Poll
 Receiving CAN messages from multiple buses using the polling method (no interrupts).
 
-**Hardware configuration:** Edit [examples/config_receive.h](examples/config_receive.h) - 3 MCP2515 devices on SPI2 (with interrupt pins defined but not used in this example).
+**Hardware configuration:** Edit [examples/config_receive.h](examples/config_receive.h) - 3 MCP25xxx devices on SPI2 (with interrupt pins defined but not used in this example).
 
 **Application code:** [examples/receive_poll/main/main.c](examples/receive_poll/main/main.c)
 
@@ -324,7 +324,7 @@ idf.py -p /dev/ttyUSB0 flash monitor
 ### Example 3: Receive Interrupt
 Receiving CAN messages from multiple buses using interrupt-driven reception (most efficient).
 
-**Hardware configuration:** Edit [examples/config_receive.h](examples/config_receive.h) - 3 MCP2515 devices on SPI2 with INT pins connected.
+**Hardware configuration:** Edit [examples/config_receive.h](examples/config_receive.h) - 3 MCP25xxx devices on SPI2 with INT pins connected.
 
 **Application code:** [examples/receive_interrupt/main/main.c](examples/receive_interrupt/main/main.c)
 
@@ -374,8 +374,8 @@ This allows you to configure:
 
 ## Features
 
-- ✅ **Scalable design** - works seamlessly with single or multiple MCP2515 devices
-- ✅ **Multiple MCP2515 devices** on shared or independent SPI buses
+- ✅ **Scalable design** - works seamlessly with single or multiple MCP25xxx devices
+- ✅ **Multiple MCP25xxx devices** on shared or independent SPI buses
 - ✅ **Flexible addressing** via numeric IDs, handles, or composite targets
 - ✅ **Registry-based** device management with lookup functions
 - ✅ **Event-driven or polling** reception modes

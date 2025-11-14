@@ -3,7 +3,7 @@
  * @brief Hardware configuration for send example
  * 
  * This file defines the hardware setup for the send example:
- * - 2 MCP2515 devices on SPI3 host
+ * - 2 MCP25xxx devices on SPI3 host
  * - TX-only configuration (no INT pins)
  * - 16 MHz crystal, 1 Mbps CAN bitrate
  * 
@@ -18,10 +18,10 @@
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
-#include "mcp2515_multi.h"
+#include "mcp25xxx_multi.h"
 
 // Multi-device configuration for send_multi example:
-// Two MCP2515 devices on SPI3 host, no INT lines (TX only)
+// Two MCP25xxx devices on SPI3 host, no INT lines (TX only)
 
 const mcp2515_bundle_config_t CAN_HW_CFG = {
     .bus = {
@@ -61,8 +61,8 @@ const mcp2515_bundle_config_t CAN_HW_CFG = {
                 .address_bits    = 0,
                 .dummy_bits      = 0,
             },
-            .hw   = { .crystal_frequency = MCP_16MHZ },
-            .can  = { .can_speed = CAN_1000KBPS, .use_loopback = false },
+            .hw   = { .crystal_frequency = MCP25XXX_16MHZ },
+            .can  = { .can_speed = MCP25XXX_1000KBPS, .use_loopback = false },
         },
         {
             .dev_id = (can_dev_id_t)2,
@@ -81,8 +81,8 @@ const mcp2515_bundle_config_t CAN_HW_CFG = {
                 .address_bits    = 0,
                 .dummy_bits      = 0,
             },
-            .hw   = { .crystal_frequency = MCP_16MHZ },
-            .can  = { .can_speed = CAN_1000KBPS, .use_loopback = false },
+            .hw   = { .crystal_frequency = MCP25XXX_16MHZ },
+            .can  = { .can_speed = MCP25XXX_1000KBPS, .use_loopback = false },
         },
     },
     .device_count = 2,

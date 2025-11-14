@@ -1,13 +1,13 @@
 /**
- * @file mcp2515_multi.h
- * @brief High-level multi-device MCP2515 CAN controller library for ESP-IDF
+ * @file mcp25xxx_multi.h
+ * @brief High-level multi-device MCP25xxx CAN controller library for ESP-IDF
  * 
- * This library provides a comprehensive interface for managing multiple MCP2515
+ * This library provides a comprehensive interface for managing multiple MCP25xxx
  * CAN controllers connected via SPI. It supports multiple devices on one or more
  * SPI buses with independent or parallel operation.
  * 
  * Key features:
- * - Multiple MCP2515 devices on shared or separate SPI buses
+ * - Multiple MCP25xxx devices on shared or separate SPI buses
  * - Numeric bus/device IDs for efficient addressing
  * - Registry-based device management
  * - Flexible initialization and lifecycle control
@@ -52,7 +52,7 @@ typedef uint8_t can_dev_id_t;
 /**
  * @brief SPI bus wiring configuration
  * 
- * Defines GPIO pins used for SPI bus communication with MCP2515 devices.
+ * Defines GPIO pins used for SPI bus communication with MCP25xxx devices.
  */
 typedef struct {
     gpio_num_t miso_io_num;    /**< Master In Slave Out (MISO) GPIO pin */
@@ -80,7 +80,7 @@ typedef struct {
  * @brief Complete SPI bus configuration
  * 
  * Combines wiring, parameters, and lifecycle management for one SPI bus.
- * Multiple MCP2515 devices can share the same SPI bus.
+ * Multiple MCP25xxx devices can share the same SPI bus.
  */
 typedef struct {
     can_bus_id_t         bus_id;             /**< User-assigned bus identifier (0-255) */
@@ -125,7 +125,7 @@ static inline bool mcp_spi_bus_to_idf(const mcp_spi_bus_config_t *src,
 /**
  * @brief SPI device wiring configuration
  * 
- * Defines device-specific GPIO pins for a single MCP2515 controller.
+ * Defines device-specific GPIO pins for a single MCP25xxx controller.
  * Each device on the bus requires a unique CS (Chip Select) pin.
  */
 typedef struct {
@@ -138,16 +138,16 @@ typedef struct {
 /**
  * @brief SPI device parameters
  * 
- * SPI communication parameters specific to one MCP2515 device.
+ * SPI communication parameters specific to one MCP25xxx device.
  */
 typedef struct {
-    uint8_t   mode;             /**< SPI mode (0-3), MCP2515 uses mode 0 */
-    uint32_t  clock_speed_hz;   /**< SPI clock frequency in Hz (typically 10 MHz max for MCP2515) */
+    uint8_t   mode;             /**< SPI mode (0-3), MCP25xxx uses mode 0 */
+    uint32_t  clock_speed_hz;   /**< SPI clock frequency in Hz (typically 10 MHz max for MCP25xxx) */
     uint32_t  queue_size;       /**< Transaction queue depth (e.g., 64) */
     uint32_t  flags;            /**< Device-specific flags (SPI_DEVICE_*) */
-    uint32_t  command_bits;     /**< Number of command bits (usually 0 for MCP2515) */
-    uint32_t  address_bits;     /**< Number of address bits (usually 0 for MCP2515) */
-    uint32_t  dummy_bits;       /**< Number of dummy bits (usually 0 for MCP2515) */
+    uint32_t  command_bits;     /**< Number of command bits (usually 0 for MCP25xxx) */
+    uint32_t  address_bits;     /**< Number of address bits (usually 0 for MCP25xxx) */
+    uint32_t  dummy_bits;       /**< Number of dummy bits (usually 0 for MCP25xxx) */
 } mcp_spi_dev_params_t;
 
 static inline void mcp_spi_dev_to_idf(const mcp_spi_dev_wiring_t *w,
@@ -171,19 +171,19 @@ static inline void mcp_spi_dev_to_idf(const mcp_spi_dev_wiring_t *w,
     out->dummy_bits = p->dummy_bits;
 }
 
-// ---------- MCP2515 device (HW + CAN params) ----------
+// ---------- MCP25xxx device (HW + CAN params) ----------
 
 /**
- * @brief MCP2515 crystal oscillator frequency
+ * @brief MCP25xxx crystal oscillator frequency
  * 
- * The MCP2515 can use different crystal frequencies. This must match
- * the actual crystal mounted on your MCP2515 module.
+ * The MCP25xxx family can use different crystal frequencies. This must match
+ * the actual crystal mounted on your MCP25xxx module.
  */
 typedef enum {
-    MCP_20MHZ,  /**< 20 MHz crystal oscillator */
-    MCP_16MHZ,  /**< 16 MHz crystal oscillator (most common) */
-    MCP_8MHZ    /**< 8 MHz crystal oscillator */
-} CAN_CLOCK_t;
+    MCP25XXX_20MHZ,  /**< 20 MHz crystal oscillator */
+    MCP25XXX_16MHZ,  /**< 16 MHz crystal oscillator (most common) */
+    MCP25XXX_8MHZ    /**< 8 MHz crystal oscillator */
+} mcp25xxx_clock_t;
 
 /**
  * @brief CAN bus bitrate (baud rate)
@@ -192,31 +192,31 @@ typedef enum {
  * depends on both the speed and the crystal frequency.
  */
 typedef enum {
-    CAN_5KBPS,     /**< 5 kbit/s */
-    CAN_10KBPS,    /**< 10 kbit/s */
-    CAN_20KBPS,    /**< 20 kbit/s */
-    CAN_31K25BPS,  /**< 31.25 kbit/s */
-    CAN_33KBPS,    /**< 33 kbit/s */
-    CAN_40KBPS,    /**< 40 kbit/s */
-    CAN_50KBPS,    /**< 50 kbit/s */
-    CAN_80KBPS,    /**< 80 kbit/s */
-    CAN_83K3BPS,   /**< 83.3 kbit/s */
-    CAN_95KBPS,    /**< 95 kbit/s */
-    CAN_100KBPS,   /**< 100 kbit/s */
-    CAN_125KBPS,   /**< 125 kbit/s */
-    CAN_200KBPS,   /**< 200 kbit/s */
-    CAN_250KBPS,   /**< 250 kbit/s (common industrial) */
-    CAN_500KBPS,   /**< 500 kbit/s (common automotive) */
-    CAN_1000KBPS   /**< 1 Mbit/s (maximum) */
-} CAN_SPEED_t;
+    MCP25XXX_5KBPS,     /**< 5 kbit/s */
+    MCP25XXX_10KBPS,    /**< 10 kbit/s */
+    MCP25XXX_20KBPS,    /**< 20 kbit/s */
+    MCP25XXX_31K25BPS,  /**< 31.25 kbit/s */
+    MCP25XXX_33KBPS,    /**< 33 kbit/s */
+    MCP25XXX_40KBPS,    /**< 40 kbit/s */
+    MCP25XXX_50KBPS,    /**< 50 kbit/s */
+    MCP25XXX_80KBPS,    /**< 80 kbit/s */
+    MCP25XXX_83K3BPS,   /**< 83.3 kbit/s */
+    MCP25XXX_95KBPS,    /**< 95 kbit/s */
+    MCP25XXX_100KBPS,   /**< 100 kbit/s */
+    MCP25XXX_125KBPS,   /**< 125 kbit/s */
+    MCP25XXX_200KBPS,   /**< 200 kbit/s */
+    MCP25XXX_250KBPS,   /**< 250 kbit/s (common industrial) */
+    MCP25XXX_500KBPS,   /**< 500 kbit/s (common automotive) */
+    MCP25XXX_1000KBPS   /**< 1 Mbit/s (maximum) */
+} mcp25xxx_speed_t;
 
 /**
- * @brief MCP2515 hardware configuration
+ * @brief MCP25xxx hardware configuration
  * 
- * Hardware-specific settings for the MCP2515 controller.
+ * Hardware-specific settings for the MCP25xxx controller.
  */
 typedef struct {
-    CAN_CLOCK_t crystal_frequency;   /**< Crystal oscillator frequency (must match hardware) */
+    mcp25xxx_clock_t crystal_frequency;   /**< Crystal oscillator frequency (must match hardware) */
 } mcp2515_hw_t;
 
 /**
@@ -225,29 +225,29 @@ typedef struct {
  * Configuration for CAN protocol behavior.
  */
 typedef struct {
-    CAN_SPEED_t can_speed;      /**< CAN bus bitrate */
-    bool        use_loopback;   /**< Enable loopback mode for testing (messages sent are immediately received) */
+    mcp25xxx_speed_t can_speed;      /**< CAN bus bitrate */
+    bool             use_loopback;   /**< Enable loopback mode for testing (messages sent are immediately received) */
 } mcp2515_can_params_t;
 
 /**
- * @brief Complete MCP2515 device configuration
+ * @brief Complete MCP25xxx device configuration
  * 
- * Combines all configuration aspects for a single MCP2515 controller:
+ * Combines all configuration aspects for a single MCP25xxx controller:
  * device ID, SPI connection, hardware settings, and CAN parameters.
  */
 typedef struct {
     uint8_t                dev_id;     /**< User-assigned device identifier (0-255) */
     mcp_spi_dev_wiring_t   wiring;     /**< Device wiring (CS, INT, optional STBY/RST pins) */
     mcp_spi_dev_params_t   spi_params; /**< SPI communication parameters */
-    mcp2515_hw_t           hw;         /**< MCP2515 hardware configuration */
+    mcp2515_hw_t           hw;         /**< MCP25xxx hardware configuration */
     mcp2515_can_params_t   can;        /**< CAN protocol parameters */
 } mcp2515_device_config_t;
 
 /**
- * @brief Bundle configuration: one SPI bus with multiple MCP2515 devices
+ * @brief Bundle configuration: one SPI bus with multiple MCP25xxx devices
  * 
  * A bundle represents a complete setup with one SPI bus and one or more
- * MCP2515 devices sharing that bus. This is the primary configuration
+ * MCP25xxx devices sharing that bus. This is the primary configuration
  * structure used for initialization.
  * 
  * @note All devices in a bundle share the same MISO/MOSI/SCLK pins but
@@ -322,7 +322,7 @@ static inline can_dev_id_t can_target_dev_id(can_target_t t) { return (can_dev_i
  * @defgroup registry Registry and Lookup API
  * @brief Functions for managing and querying registered buses and devices
  * 
- * The registry maintains information about all configured SPI buses and MCP2515
+ * The registry maintains information about all configured SPI buses and MCP25xxx
  * devices. Use these functions to enumerate, lookup, and validate handles.
  * @{
  */
@@ -429,7 +429,7 @@ bool              canif_receive_default(twai_message_t* msg);
  * @brief Functions for opening, closing, and managing device lifecycle
  * 
  * Devices must be opened before use and should be closed when no longer needed.
- * Opening performs: SPI device binding, MCP2515 reset, bitrate configuration,
+ * Opening performs: SPI device binding, MCP25xxx reset, bitrate configuration,
  * and mode setting.
  * @{
  */
@@ -437,7 +437,7 @@ bool              canif_receive_default(twai_message_t* msg);
 /**
  * @brief Opens a device for operation
  * 
- * Performs complete initialization: SPI binding, MCP2515 reset, bitrate
+ * Performs complete initialization: SPI binding, MCP25xxx reset, bitrate
  * configuration, and mode setting according to device configuration.
  * 
  * @param dev Device handle
@@ -488,19 +488,19 @@ bool              canif_close_all(void);
  * @param clock Crystal frequency
  * @return true on success, false otherwise
  */
-bool              canif_set_bitrate_to(can_dev_handle_t dev, CAN_SPEED_t speed, CAN_CLOCK_t clock);
+bool              canif_set_bitrate_to(can_dev_handle_t dev, mcp25xxx_speed_t speed, mcp25xxx_clock_t clock);
 
 // Switches device mode.
 bool              canif_set_mode_normal(can_dev_handle_t dev);
 bool              canif_set_mode_loopback(can_dev_handle_t dev);
 
 // ID-based convenience variants
-bool              canif_set_bitrate_id(can_bus_id_t bus_id, can_dev_id_t dev_id, CAN_SPEED_t s, CAN_CLOCK_t c);
+bool              canif_set_bitrate_id(can_bus_id_t bus_id, can_dev_id_t dev_id, mcp25xxx_speed_t s, mcp25xxx_clock_t c);
 bool              canif_set_mode_normal_id(can_bus_id_t bus_id, can_dev_id_t dev_id);
 bool              canif_set_mode_loopback_id(can_bus_id_t bus_id, can_dev_id_t dev_id);
 
 /** @brief Sets bitrate using composite target */
-bool              canif_set_bitrate_target(can_target_t t, CAN_SPEED_t s, CAN_CLOCK_t c);
+bool              canif_set_bitrate_target(can_target_t t, mcp25xxx_speed_t s, mcp25xxx_clock_t c);
 
 /** @brief Sets normal mode using composite target */
 bool              canif_set_mode_normal_target(can_target_t t);
@@ -524,7 +524,7 @@ bool              canif_set_mode_loopback_target(can_target_t t);
 /**
  * @brief Event callback function type
  * @param dev Device that triggered the event
- * @param eventMask Bitmask of events (MCP2515_EVENT_* flags)
+ * @param eventMask Bitmask of events (MCP25XXX_EVENT_* flags)
  * @param userData User data pointer passed during registration
  */
 typedef void (*canif_event_cb)(can_dev_handle_t dev, uint32_t eventMask, void* userData);
@@ -552,7 +552,7 @@ uint32_t          canif_wait_for_event(can_dev_handle_t dev, uint32_t timeout_ti
  */
 
 /**
- * @brief Reads MCP2515 error flags register (EFLG)
+ * @brief Reads MCP25xxx error flags register (EFLG)
  * @param dev Device handle
  * @return Error flags byte (0 = no errors)
  */
@@ -573,7 +573,7 @@ void              canif_clear_error_int(can_dev_handle_t dev);
  * @defgroup filters Acceptance Filters and Masks
  * @brief Hardware message filtering configuration
  * 
- * MCP2515 provides 6 acceptance filters (0-5) and 2 masks (0-1).
+ * MCP25xxx provides 6 acceptance filters (0-5) and 2 masks (0-1).
  * Filters determine which CAN IDs are received; masks specify which bits are checked.
  * @{
  */

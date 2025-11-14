@@ -5,9 +5,9 @@
 #include "freertos/semphr.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "mcp2515_multi_internal.h"
+#include "mcp25xxx_multi_internal.h"
 
-// MCP2515 instructions / registers (subset)
+// MCP25xxx instructions / registers (subset)
 #define INSTRUCTION_RESET       0xC0
 #define INSTRUCTION_READ        0x03
 #define INSTRUCTION_WRITE       0x02
@@ -80,21 +80,21 @@
 #define RXM0SIDH 0x20
 #define RXM1SIDH 0x24
 
-typedef struct MCP2515_Context {
+typedef struct MCP25XXX_Context {
     spi_device_handle_t spi;
     gpio_num_t          int_gpio;
     SemaphoreHandle_t   event_sem;   // signaled by ISR
-    MCP2515_EventCallback cb;
+    MCP25XXX_EventCallback cb;
     void*               cb_user;
-    CAN_SPEED_t         can_speed;
-    CAN_CLOCK_t         can_clock;
-} MCP2515_Context;
+    mcp25xxx_speed_t    can_speed;
+    mcp25xxx_clock_t    can_clock;
+} MCP25XXX_Context;
 
 // static const char* TAG = "mcp2515_multi";
 
 static void IRAM_ATTR mcp2515_isr_handler(void* arg)
 {
-    MCP2515_Context* ctx = (MCP2515_Context*)arg;
+    MCP25XXX_Context* ctx = (MCP25XXX_Context*)arg;
     BaseType_t woken = pdFALSE;
     if (ctx && ctx->event_sem) {
         xSemaphoreGiveFromISR(ctx->event_sem, &woken);
@@ -121,7 +121,7 @@ esp_err_t mcp2515_spi_remove_device(spi_device_handle_t spi)
 
 // ---------------------- Low-level helpers ----------------------
 
-static ERROR_t mcp2515_ll_reset(MCP2515_Handle h)
+static ERROR_t mcp2515_ll_reset(MCP25XXX_Handle h)
 {
     spi_transaction_t trans = {};
     trans.length = 8;
@@ -132,7 +132,7 @@ static ERROR_t mcp2515_ll_reset(MCP2515_Handle h)
     return ERROR_OK;
 }
 
-static uint8_t mcp2515_ll_read(MCP2515_Handle h, uint8_t reg)
+static uint8_t mcp2515_ll_read(MCP25XXX_Handle h, uint8_t reg)
 {
     spi_transaction_t trans = {};
     trans.length = 24;
@@ -144,7 +144,7 @@ static uint8_t mcp2515_ll_read(MCP2515_Handle h, uint8_t reg)
     return trans.rx_data[2];
 }
 
-static void mcp2515_ll_write(MCP2515_Handle h, uint8_t reg, uint8_t value)
+static void mcp2515_ll_write(MCP25XXX_Handle h, uint8_t reg, uint8_t value)
 {
     spi_transaction_t trans = {};
     trans.length = 24;
@@ -155,7 +155,7 @@ static void mcp2515_ll_write(MCP2515_Handle h, uint8_t reg, uint8_t value)
     (void)spi_device_transmit(h->spi, &trans);
 }
 
-static void mcp2515_ll_bitmod(MCP2515_Handle h, uint8_t reg, uint8_t mask, uint8_t data)
+static void mcp2515_ll_bitmod(MCP25XXX_Handle h, uint8_t reg, uint8_t mask, uint8_t data)
 {
     spi_transaction_t trans = {};
     trans.length = 32;
@@ -167,7 +167,7 @@ static void mcp2515_ll_bitmod(MCP2515_Handle h, uint8_t reg, uint8_t mask, uint8
     (void)spi_device_transmit(h->spi, &trans);
 }
 
-static ERROR_t mcp2515_set_mode(MCP2515_Handle h, uint8_t req)
+static ERROR_t mcp2515_set_mode(MCP25XXX_Handle h, uint8_t req)
 {
     mcp2515_ll_bitmod(h, MCP_CANCTRL, CANCTRL_REQOP, req);
     for (int i = 0; i < 10; i++) {
@@ -180,13 +180,13 @@ static ERROR_t mcp2515_set_mode(MCP2515_Handle h, uint8_t req)
 
 // ---------------------- Public API ----------------------
 
-ERROR_t MCP2515_CreateOnDevice(spi_device_handle_t spi,
+ERROR_t MCP25XXX_CreateOnDevice(spi_device_handle_t spi,
                                gpio_num_t int_gpio,
                                const mcp2515_multi_config_t* cfg,
-                               MCP2515_Handle* out_handle)
+                               MCP25XXX_Handle* out_handle)
 {
     if (!spi || !cfg || !out_handle) return ERROR_FAIL;
-    MCP2515_Context* ctx = (MCP2515_Context*)calloc(1, sizeof(MCP2515_Context));
+    MCP25XXX_Context* ctx = (MCP25XXX_Context*)calloc(1, sizeof(MCP25XXX_Context));
     if (!ctx) return ERROR_FAIL;
     ctx->spi = spi;
     ctx->int_gpio = int_gpio;
@@ -209,7 +209,7 @@ ERROR_t MCP2515_CreateOnDevice(spi_device_handle_t spi,
         if (gpio_isr_handler_add(int_gpio, mcp2515_isr_handler, ctx) != ESP_OK) { vSemaphoreDelete(ctx->event_sem); free(ctx); return ERROR_FAIL; }
     }
 
-    if (mcp2515_ll_reset(ctx) != ERROR_OK) { MCP2515_Destroy(ctx); return ERROR_FAIL; }
+    if (mcp2515_ll_reset(ctx) != ERROR_OK) { MCP25XXX_Destroy(ctx); return ERROR_FAIL; }
     // Accept all frames on both RX buffers, enable rollover on RXB0
     mcp2515_ll_write(ctx, RXB0CTRL, RXM_MASK | RXB0_BUKT);
     mcp2515_ll_write(ctx, RXB1CTRL, RXM_MASK);
@@ -219,25 +219,25 @@ ERROR_t MCP2515_CreateOnDevice(spi_device_handle_t spi,
     return ERROR_OK;
 }
 
-ERROR_t MCP2515_CreateOnBus(spi_host_device_t host,
+ERROR_t MCP25XXX_CreateOnBus(spi_host_device_t host,
                             const spi_bus_config_t* bus_cfg,
                             const spi_device_interface_config_t* dev_cfg,
                             gpio_num_t int_gpio,
                             const mcp2515_multi_config_t* cfg,
-                            MCP2515_Handle* out_handle)
+                            MCP25XXX_Handle* out_handle)
 {
     if (!bus_cfg || !dev_cfg) return ERROR_FAIL;
     if (mcp2515_spi_init_bus_if_needed(host, bus_cfg) != ESP_OK) return ERROR_FAIL;
     spi_device_handle_t spi = NULL;
     if (mcp2515_spi_add_device(host, dev_cfg, &spi) != ESP_OK) return ERROR_FAIL;
-    ERROR_t rc = MCP2515_CreateOnDevice(spi, int_gpio, cfg, out_handle);
+    ERROR_t rc = MCP25XXX_CreateOnDevice(spi, int_gpio, cfg, out_handle);
     if (rc != ERROR_OK) {
         (void)mcp2515_spi_remove_device(spi);
     }
     return rc;
 }
 
-void MCP2515_Destroy(MCP2515_Handle h)
+void MCP25XXX_Destroy(MCP25XXX_Handle h)
 {
     if (!h) return;
     if (h->int_gpio >= 0) {
@@ -247,50 +247,50 @@ void MCP2515_Destroy(MCP2515_Handle h)
     free(h);
 }
 
-ERROR_t MCP2515_Reset(MCP2515_Handle h)
+ERROR_t MCP25XXX_Reset(MCP25XXX_Handle h)
 {
     if (!h) return ERROR_FAIL;
     return mcp2515_ll_reset(h);
 }
 
 // Bitrate tables (subset) taken from original library
-static void bitrate_regs(CAN_SPEED_t s, CAN_CLOCK_t c, uint8_t* cnf1, uint8_t* cnf2, uint8_t* cnf3)
+static void bitrate_regs(mcp25xxx_speed_t s, mcp25xxx_clock_t c, uint8_t* cnf1, uint8_t* cnf2, uint8_t* cnf3)
 {
     // Defaults invalid
     *cnf1 = *cnf2 = *cnf3 = 0xFF;
-    if (c == MCP_16MHZ) {
+    if (c == MCP25XXX_16MHZ) {
         switch (s) {
-            case CAN_1000KBPS: *cnf1=0x00; *cnf2=0xD0; *cnf3=0x82; break;
-            case CAN_500KBPS:  *cnf1=0x00; *cnf2=0xF0; *cnf3=0x86; break;
-            case CAN_250KBPS:  *cnf1=0x41; *cnf2=0xF1; *cnf3=0x85; break;
-            case CAN_125KBPS:  *cnf1=0x03; *cnf2=0xF0; *cnf3=0x86; break;
-            case CAN_100KBPS:  *cnf1=0x03; *cnf2=0xFA; *cnf3=0x87; break;
-            case CAN_80KBPS:   *cnf1=0x03; *cnf2=0xFF; *cnf3=0x87; break;
-            case CAN_50KBPS:   *cnf1=0x07; *cnf2=0xFA; *cnf3=0x87; break;
+            case MCP25XXX_1000KBPS: *cnf1=0x00; *cnf2=0xD0; *cnf3=0x82; break;
+            case MCP25XXX_500KBPS:  *cnf1=0x00; *cnf2=0xF0; *cnf3=0x86; break;
+            case MCP25XXX_250KBPS:  *cnf1=0x41; *cnf2=0xF1; *cnf3=0x85; break;
+            case MCP25XXX_125KBPS:  *cnf1=0x03; *cnf2=0xF0; *cnf3=0x86; break;
+            case MCP25XXX_100KBPS:  *cnf1=0x03; *cnf2=0xFA; *cnf3=0x87; break;
+            case MCP25XXX_80KBPS:   *cnf1=0x03; *cnf2=0xFF; *cnf3=0x87; break;
+            case MCP25XXX_50KBPS:   *cnf1=0x07; *cnf2=0xFA; *cnf3=0x87; break;
             default: break;
         }
-    } else if (c == MCP_8MHZ) {
+    } else if (c == MCP25XXX_8MHZ) {
         switch (s) {
-            case CAN_1000KBPS: *cnf1=0x00; *cnf2=0x80; *cnf3=0x80; break;
-            case CAN_500KBPS:  *cnf1=0x00; *cnf2=0x90; *cnf3=0x82; break;
-            case CAN_250KBPS:  *cnf1=0x00; *cnf2=0xB1; *cnf3=0x85; break;
-            case CAN_125KBPS:  *cnf1=0x01; *cnf2=0xB1; *cnf3=0x85; break;
-            case CAN_100KBPS:  *cnf1=0x01; *cnf2=0xB4; *cnf3=0x86; break;
+            case MCP25XXX_1000KBPS: *cnf1=0x00; *cnf2=0x80; *cnf3=0x80; break;
+            case MCP25XXX_500KBPS:  *cnf1=0x00; *cnf2=0x90; *cnf3=0x82; break;
+            case MCP25XXX_250KBPS:  *cnf1=0x00; *cnf2=0xB1; *cnf3=0x85; break;
+            case MCP25XXX_125KBPS:  *cnf1=0x01; *cnf2=0xB1; *cnf3=0x85; break;
+            case MCP25XXX_100KBPS:  *cnf1=0x01; *cnf2=0xB4; *cnf3=0x86; break;
             default: break;
         }
-    } else if (c == MCP_20MHZ) {
+    } else if (c == MCP25XXX_20MHZ) {
         switch (s) {
-            case CAN_1000KBPS: *cnf1=0x00; *cnf2=0xD9; *cnf3=0x82; break;
-            case CAN_500KBPS:  *cnf1=0x00; *cnf2=0xFA; *cnf3=0x87; break;
-            case CAN_250KBPS:  *cnf1=0x41; *cnf2=0xFB; *cnf3=0x86; break;
-            case CAN_125KBPS:  *cnf1=0x03; *cnf2=0xFA; *cnf3=0x87; break;
-            case CAN_100KBPS:  *cnf1=0x04; *cnf2=0xFA; *cnf3=0x87; break;
+            case MCP25XXX_1000KBPS: *cnf1=0x00; *cnf2=0xD9; *cnf3=0x82; break;
+            case MCP25XXX_500KBPS:  *cnf1=0x00; *cnf2=0xFA; *cnf3=0x87; break;
+            case MCP25XXX_250KBPS:  *cnf1=0x41; *cnf2=0xFB; *cnf3=0x86; break;
+            case MCP25XXX_125KBPS:  *cnf1=0x03; *cnf2=0xFA; *cnf3=0x87; break;
+            case MCP25XXX_100KBPS:  *cnf1=0x04; *cnf2=0xFA; *cnf3=0x87; break;
             default: break;
         }
     }
 }
 
-ERROR_t MCP2515_SetBitrate(MCP2515_Handle h, CAN_SPEED_t speed, CAN_CLOCK_t clock)
+ERROR_t MCP25XXX_SetBitrate(MCP25XXX_Handle h, mcp25xxx_speed_t speed, mcp25xxx_clock_t clock)
 {
     if (!h) return ERROR_FAIL;
     if (mcp2515_set_mode(h, CANCTRL_REQOP_CONFIG) != ERROR_OK) return ERROR_FAIL;
@@ -303,13 +303,13 @@ ERROR_t MCP2515_SetBitrate(MCP2515_Handle h, CAN_SPEED_t speed, CAN_CLOCK_t cloc
     return ERROR_OK;
 }
 
-ERROR_t MCP2515_SetNormalMode(MCP2515_Handle h)
+ERROR_t MCP25XXX_SetNormalMode(MCP25XXX_Handle h)
 {
     if (!h) return ERROR_FAIL;
     return mcp2515_set_mode(h, CANCTRL_REQOP_NORMAL);
 }
 
-ERROR_t MCP2515_SetLoopbackMode(MCP2515_Handle h)
+ERROR_t MCP25XXX_SetLoopbackMode(MCP25XXX_Handle h)
 {
     if (!h) return ERROR_FAIL;
     return mcp2515_set_mode(h, CANCTRL_REQOP_LOOPBACK);
@@ -353,7 +353,7 @@ static uint8_t mask_base(uint8_t idx)
     }
 }
 
-ERROR_t MCP2515_SetFilter(MCP2515_Handle h, uint8_t filter_idx, bool extended, uint32_t id)
+ERROR_t MCP25XXX_SetFilter(MCP25XXX_Handle h, uint8_t filter_idx, bool extended, uint32_t id)
 {
     if (!h) return ERROR_FAIL;
     uint8_t base = filter_base(filter_idx);
@@ -369,7 +369,7 @@ ERROR_t MCP2515_SetFilter(MCP2515_Handle h, uint8_t filter_idx, bool extended, u
     return ERROR_OK;
 }
 
-ERROR_t MCP2515_SetMask(MCP2515_Handle h, uint8_t mask_idx, bool extended, uint32_t mask)
+ERROR_t MCP25XXX_SetMask(MCP25XXX_Handle h, uint8_t mask_idx, bool extended, uint32_t mask)
 {
     if (!h) return ERROR_FAIL;
     uint8_t base = mask_base(mask_idx);
@@ -383,7 +383,7 @@ ERROR_t MCP2515_SetMask(MCP2515_Handle h, uint8_t mask_idx, bool extended, uint3
     return ERROR_OK;
 }
 
-ERROR_t MCP2515_SendMessageAfterCtrlCheck(MCP2515_Handle h, const CAN_FRAME* frame)
+ERROR_t MCP25XXX_SendMessageAfterCtrlCheck(MCP25XXX_Handle h, const CAN_FRAME* frame)
 {
     if (!h || !frame || frame->can_dlc > 8) return ERROR_FAILTX;
     // Choose TXB0 for simplicity
@@ -406,7 +406,7 @@ ERROR_t MCP2515_SendMessageAfterCtrlCheck(MCP2515_Handle h, const CAN_FRAME* fra
     return ERROR_OK;
 }
 
-static uint8_t read_status(MCP2515_Handle h)
+static uint8_t read_status(MCP25XXX_Handle h)
 {
     spi_transaction_t trans = {};
     trans.length = 16;
@@ -417,7 +417,7 @@ static uint8_t read_status(MCP2515_Handle h)
     return trans.rx_data[1];
 }
 
-ERROR_t MCP2515_ReadMessageAfterStatCheck(MCP2515_Handle h, CAN_FRAME* frame)
+ERROR_t MCP25XXX_ReadMessageAfterStatCheck(MCP25XXX_Handle h, CAN_FRAME* frame)
 {
     if (!h || !frame) return ERROR_FAIL;
     uint8_t stat = read_status(h);
@@ -443,35 +443,35 @@ ERROR_t MCP2515_ReadMessageAfterStatCheck(MCP2515_Handle h, CAN_FRAME* frame)
     return ERROR_OK;
 }
 
-void MCP2515_SetEventCallback(MCP2515_Handle h, MCP2515_EventCallback cb, void* userData)
+void MCP25XXX_SetEventCallback(MCP25XXX_Handle h, MCP25XXX_EventCallback cb, void* userData)
 {
     if (!h) return;
     h->cb = cb;
     h->cb_user = userData;
 }
 
-uint32_t MCP2515_WaitForEvent(MCP2515_Handle h, uint32_t timeout_ticks)
+uint32_t MCP25XXX_WaitForEvent(MCP25XXX_Handle h, uint32_t timeout_ticks)
 {
     if (!h) return 0;
     if (xSemaphoreTake(h->event_sem, timeout_ticks) == pdTRUE) {
         uint8_t eflg = mcp2515_ll_read(h, MCP_EFLG);
         uint8_t intf = mcp2515_ll_read(h, MCP_CANINTF);
         uint32_t ev = 0;
-        if (intf & ((1u<<0)|(1u<<1))) ev |= MCP2515_EVENT_RX_READY;
-        if (eflg) ev |= MCP2515_EVENT_ERROR;
+        if (intf & ((1u<<0)|(1u<<1))) ev |= MCP25XXX_EVENT_RX_READY;
+        if (eflg) ev |= MCP25XXX_EVENT_ERROR;
         if (h->cb && ev) h->cb(h, ev, h->cb_user);
         return ev;
     }
     return 0;
 }
 
-uint8_t MCP2515_GetErrorFlags(MCP2515_Handle h)
+uint8_t MCP25XXX_GetErrorFlags(MCP25XXX_Handle h)
 {
     if (!h) return 0;
     return mcp2515_ll_read(h, MCP_EFLG);
 }
 
-void MCP2515_ClearRXnOVR(MCP2515_Handle h)
+void MCP25XXX_ClearRXnOVR(MCP25XXX_Handle h)
 {
     if (!h) return;
     // Clear RX0OVR | RX1OVR and clear interrupts
@@ -480,7 +480,7 @@ void MCP2515_ClearRXnOVR(MCP2515_Handle h)
     mcp2515_ll_write(h, MCP_CANINTF, 0);
 }
 
-void MCP2515_ClearERRIF(MCP2515_Handle h)
+void MCP25XXX_ClearERRIF(MCP25XXX_Handle h)
 {
     if (!h) return;
     // Clear ERRIF in CANINTF

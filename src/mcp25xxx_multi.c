@@ -1,6 +1,6 @@
 #include <string.h>
-#include "mcp2515_multi.h"
-#include "mcp2515_multi_internal.h"
+#include "mcp25xxx_multi.h"
+#include "mcp25xxx_multi_internal.h"
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -39,7 +39,7 @@ static struct can_dev_handle_s s_dev_handles[CANIF_MAX_BUSES][CANIF_MAX_DEVICES_
 
 // Per-device runtime context (created on open, cleared on close)
 typedef struct {
-    MCP2515_Handle         h;          // backend handle
+    MCP25XXX_Handle         h;          // backend handle
     spi_device_handle_t    spi;        // SPI device for removal
     gpio_num_t             int_gpio;   // INT pin (for info)
     uint8_t                opened;     // 1 if opened
@@ -229,27 +229,27 @@ bool canif_open_device(can_dev_handle_t dev)
 
     // Create controller instance on device
     mcp2515_multi_config_t mc = { .can_speed = dcfg->can.can_speed, .can_clock = dcfg->hw.crystal_frequency };
-    MCP2515_Handle h = NULL;
-    if (MCP2515_CreateOnDevice(spi, dcfg->wiring.int_gpio, &mc, &h) != ERROR_OK) {
+    MCP25XXX_Handle h = NULL;
+    if (MCP25XXX_CreateOnDevice(spi, dcfg->wiring.int_gpio, &mc, &h) != ERROR_OK) {
         (void)mcp2515_spi_remove_device(spi);
         return false;
     }
 
     // Set bitrate explicitly and mode according to config
-    if (MCP2515_SetBitrate(h, dcfg->can.can_speed, dcfg->hw.crystal_frequency) != ERROR_OK) {
-        MCP2515_Destroy(h);
+    if (MCP25XXX_SetBitrate(h, dcfg->can.can_speed, dcfg->hw.crystal_frequency) != ERROR_OK) {
+        MCP25XXX_Destroy(h);
         (void)mcp2515_spi_remove_device(spi);
         return false;
     }
     if (dcfg->can.use_loopback) {
-        if (MCP2515_SetLoopbackMode(h) != ERROR_OK) {
-            MCP2515_Destroy(h);
+        if (MCP25XXX_SetLoopbackMode(h) != ERROR_OK) {
+            MCP25XXX_Destroy(h);
             (void)mcp2515_spi_remove_device(spi);
             return false;
         }
     } else {
-        if (MCP2515_SetNormalMode(h) != ERROR_OK) {
-            MCP2515_Destroy(h);
+        if (MCP25XXX_SetNormalMode(h) != ERROR_OK) {
+            MCP25XXX_Destroy(h);
             (void)mcp2515_spi_remove_device(spi);
             return false;
         }
@@ -272,7 +272,7 @@ bool canif_close_device(can_dev_handle_t dev)
 
     // Destroy controller and remove SPI device
     if (rt->h) {
-        MCP2515_Destroy(rt->h);
+        MCP25XXX_Destroy(rt->h);
         rt->h = NULL;
     }
     if (rt->spi) {
@@ -311,12 +311,12 @@ bool canif_close_target(can_target_t target)
 // Mode & bitrate control
 // ======================================================================================
 
-bool canif_set_bitrate_to(can_dev_handle_t dev, CAN_SPEED_t speed, CAN_CLOCK_t clock)
+bool canif_set_bitrate_to(can_dev_handle_t dev, mcp25xxx_speed_t speed, mcp25xxx_clock_t clock)
 {
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
-    return MCP2515_SetBitrate(rt->h, speed, clock) == ERROR_OK;
+    return MCP25XXX_SetBitrate(rt->h, speed, clock) == ERROR_OK;
 }
 
 bool canif_set_mode_normal(can_dev_handle_t dev)
@@ -324,7 +324,7 @@ bool canif_set_mode_normal(can_dev_handle_t dev)
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
-    return MCP2515_SetNormalMode(rt->h) == ERROR_OK;
+    return MCP25XXX_SetNormalMode(rt->h) == ERROR_OK;
 }
 
 bool canif_set_mode_loopback(can_dev_handle_t dev)
@@ -332,10 +332,10 @@ bool canif_set_mode_loopback(can_dev_handle_t dev)
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
-    return MCP2515_SetLoopbackMode(rt->h) == ERROR_OK;
+    return MCP25XXX_SetLoopbackMode(rt->h) == ERROR_OK;
 }
 
-bool canif_set_bitrate_id(can_bus_id_t bus_id, can_dev_id_t dev_id, CAN_SPEED_t s, CAN_CLOCK_t c)
+bool canif_set_bitrate_id(can_bus_id_t bus_id, can_dev_id_t dev_id, mcp25xxx_speed_t s, mcp25xxx_clock_t c)
 {
     can_dev_handle_t dev = canif_dev_get_by_id(bus_id, dev_id);
     if (!dev) return false;
@@ -356,7 +356,7 @@ bool canif_set_mode_loopback_id(can_bus_id_t bus_id, can_dev_id_t dev_id)
     return canif_set_mode_loopback(dev);
 }
 
-bool canif_set_bitrate_target(can_target_t t, CAN_SPEED_t s, CAN_CLOCK_t c)
+bool canif_set_bitrate_target(can_target_t t, mcp25xxx_speed_t s, mcp25xxx_clock_t c)
 {
     return canif_set_bitrate_id(can_target_bus_id(t), can_target_dev_id(t), s, c);
 }
@@ -383,7 +383,7 @@ typedef struct {
 
 static canif_event_binding_t s_event_bind[CANIF_MAX_BUSES][CANIF_MAX_DEVICES_PER_BUS];
 
-static void event_trampoline(MCP2515_Handle h, uint32_t mask, void* user)
+static void event_trampoline(MCP25XXX_Handle h, uint32_t mask, void* user)
 {
     (void)h;
     canif_event_binding_t* bind = (canif_event_binding_t*)user;
@@ -399,7 +399,7 @@ void canif_set_event_callback(can_dev_handle_t dev, canif_event_cb cb, void* use
     s_event_bind[bi][di].user_cb = cb;
     s_event_bind[bi][di].user_data = userData;
     s_event_bind[bi][di].dev_handle = &s_dev_handles[bi][di];
-    MCP2515_SetEventCallback(rt->h, event_trampoline, &s_event_bind[bi][di]);
+    MCP25XXX_SetEventCallback(rt->h, event_trampoline, &s_event_bind[bi][di]);
 }
 
 uint32_t canif_wait_for_event(can_dev_handle_t dev, uint32_t timeout_ticks)
@@ -407,7 +407,7 @@ uint32_t canif_wait_for_event(can_dev_handle_t dev, uint32_t timeout_ticks)
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return 0;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return 0;
-    return MCP2515_WaitForEvent(rt->h, timeout_ticks);
+    return MCP25XXX_WaitForEvent(rt->h, timeout_ticks);
 }
 
 // ======================================================================================
@@ -467,7 +467,7 @@ uint8_t canif_get_error_flags(can_dev_handle_t dev)
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return 0;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return 0;
-    return MCP2515_GetErrorFlags(rt->h);
+    return MCP25XXX_GetErrorFlags(rt->h);
 }
 
 void canif_clear_rx_overrun(can_dev_handle_t dev)
@@ -475,7 +475,7 @@ void canif_clear_rx_overrun(can_dev_handle_t dev)
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return;
-    MCP2515_ClearRXnOVR(rt->h);
+    MCP25XXX_ClearRXnOVR(rt->h);
 }
 
 void canif_clear_error_int(can_dev_handle_t dev)
@@ -483,7 +483,7 @@ void canif_clear_error_int(can_dev_handle_t dev)
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return;
-    MCP2515_ClearERRIF(rt->h);
+    MCP25XXX_ClearERRIF(rt->h);
 }
 
 // ======================================================================================
@@ -495,7 +495,7 @@ bool canif_set_filter(can_dev_handle_t dev, uint8_t filter_idx, bool extended, u
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
-    return MCP2515_SetFilter(rt->h, filter_idx, extended, id) == ERROR_OK;
+    return MCP25XXX_SetFilter(rt->h, filter_idx, extended, id) == ERROR_OK;
 }
 
 bool canif_set_mask(can_dev_handle_t dev, uint8_t mask_idx, bool extended, uint32_t mask)
@@ -503,7 +503,7 @@ bool canif_set_mask(can_dev_handle_t dev, uint8_t mask_idx, bool extended, uint3
     size_t bi, di; if (!resolve_indices(dev, &bi, &di)) return false;
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
-    return MCP2515_SetMask(rt->h, mask_idx, extended, mask) == ERROR_OK;
+    return MCP25XXX_SetMask(rt->h, mask_idx, extended, mask) == ERROR_OK;
 }
 
 // ======================================================================================
@@ -543,7 +543,7 @@ bool canif_send_to(can_dev_handle_t dev, const twai_message_t* msg)
     f.can_id = msg->identifier; // extended/rtr not encoded in backend
     f.can_dlc = msg->data_length_code;
     for (uint8_t i=0;i<msg->data_length_code;i++) f.data[i] = msg->data[i];
-    return MCP2515_SendMessageAfterCtrlCheck(rt->h, &f) == ERROR_OK;
+    return MCP25XXX_SendMessageAfterCtrlCheck(rt->h, &f) == ERROR_OK;
 }
 
 bool canif_receive_from(can_dev_handle_t dev, twai_message_t* msg)
@@ -553,7 +553,7 @@ bool canif_receive_from(can_dev_handle_t dev, twai_message_t* msg)
     canif_dev_runtime_t* rt = &s_dev_rt[bi][di];
     if (!rt->opened || !rt->h) return false;
     CAN_FRAME f;
-    ERROR_t rc = MCP2515_ReadMessageAfterStatCheck(rt->h, &f);
+    ERROR_t rc = MCP25XXX_ReadMessageAfterStatCheck(rt->h, &f);
     if (rc != ERROR_OK) return false;
     if (f.can_dlc > 8) return false;
     msg->identifier = f.can_id;

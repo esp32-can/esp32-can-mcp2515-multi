@@ -1,4 +1,4 @@
-#include "mcp2515_multi.h"
+#include "mcp25xxx_multi.h"
 #include <stdio.h>
 #include "esp_log.h"
 #include "examples_utils.h"
@@ -11,17 +11,17 @@
  * @file main.c
  * @brief CAN multi-receiver example using interrupt-driven reception
  * 
- * This example demonstrates receiving CAN messages from multiple MCP2515 devices
+ * This example demonstrates receiving CAN messages from multiple MCP25xxx devices
  * using an interrupt-driven approach. Each device has a producer task that polls
  * for messages and queues them. A consumer task processes all messages from the queue
  * with per-sender statistics tracking.
  * 
  * Hardware configuration: See examples/config_receive.h
- * - 3 MCP2515 RX devices on SPI2
+ * - 3 MCP25xxx RX devices on SPI2
  * - Interrupt pins connected (can be used for future interrupt-based reception)
  * 
  * Architecture:
- * - One producer task per MCP2515 device (polls and queues messages)
+ * - One producer task per MCP25xxx device (polls and queues messages)
  * - One consumer task (processes all queued messages)
  * - FreeRTOS queue for inter-task communication
  */
@@ -37,7 +37,7 @@ static const char *TAG = "receive_interrupt_multi";
 static QueueHandle_t rx_queue;
 
 typedef struct {
-    size_t index; // MCP2515 instance index
+    size_t index; // MCP25xxx instance index
 } producer_arg_t;
 
 static void can_rx_producer_task(void *arg)
@@ -77,7 +77,7 @@ extern "C"
 #endif
 void app_main(void)
 {
-    // Initialize MCP2515 multi library with hardware configuration from config_receive.h
+    // Initialize MCP25xxx multi library with hardware configuration from config_receive.h
     (void)canif_multi_init_default(&CAN_HW_CFG);
 
     rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(twai_message_t));

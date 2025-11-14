@@ -3,7 +3,7 @@
  * @brief Hardware configuration for receive examples
  * 
  * This file defines the hardware setup for receive_poll and receive_interrupt examples:
- * - 3 MCP2515 devices on SPI2 host
+ * - 3 MCP25xxx devices on SPI2 host
  * - Each device has its own INT (interrupt) pin for event-driven reception
  * - 16 MHz crystal, 1 Mbps CAN bitrate
  * 
@@ -20,10 +20,10 @@
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
-#include "mcp2515_multi.h"
+#include "mcp25xxx_multi.h"
 
 // Multi-device configuration for receive_*_multi examples:
-// Three MCP2515 devices on SPI2 host, each with its own INT line.
+// Three MCP25xxx devices on SPI2 host, each with its own INT line.
 
 const mcp2515_bundle_config_t CAN_HW_CFG = {
     .bus = {
@@ -63,8 +63,8 @@ const mcp2515_bundle_config_t CAN_HW_CFG = {
                 .address_bits    = 0,
                 .dummy_bits      = 0,
             },
-            .hw   = { .crystal_frequency = MCP_16MHZ },
-            .can  = { .can_speed = CAN_1000KBPS, .use_loopback = false },
+            .hw   = { .crystal_frequency = MCP25XXX_16MHZ },
+            .can  = { .can_speed = MCP25XXX_1000KBPS, .use_loopback = false },
         },
         {
             .dev_id = (can_dev_id_t)2,
@@ -83,8 +83,8 @@ const mcp2515_bundle_config_t CAN_HW_CFG = {
                 .address_bits    = 0,
                 .dummy_bits      = 0,
             },
-            .hw   = { .crystal_frequency = MCP_16MHZ },
-            .can  = { .can_speed = CAN_1000KBPS, .use_loopback = false },
+            .hw   = { .crystal_frequency = MCP25XXX_16MHZ },
+            .can  = { .can_speed = MCP25XXX_1000KBPS, .use_loopback = false },
         },
         {
             .dev_id = (can_dev_id_t)3,
@@ -103,8 +103,8 @@ const mcp2515_bundle_config_t CAN_HW_CFG = {
                 .address_bits    = 0,
                 .dummy_bits      = 0,
             },
-            .hw   = { .crystal_frequency = MCP_16MHZ },
-            .can  = { .can_speed = CAN_1000KBPS, .use_loopback = false },
+            .hw   = { .crystal_frequency = MCP25XXX_16MHZ },
+            .can  = { .can_speed = MCP25XXX_1000KBPS, .use_loopback = false },
         },
     },
     .device_count = 3,
