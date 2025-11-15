@@ -27,9 +27,9 @@ Supports multiple MCP25xxx controllers on one or more SPI buses, numeric bus/dev
   - Not exported to users; subject to change
 
 ## Hardware notes
-- A 120-ohm termination resistor should be placed at **one** end of the bus **only**!
+- **CAN bus termination:** The general recommendation is to place one 120-ohm termination resistor at each end of a long CAN bus. However, the author's experience with short experimental setups shows that using only one 120-ohm resistor for the entire bus often works better.
 - Custom GPIO assignments are configurable (see [examples/config_send.h](examples/config_send.h) and [examples/config_receive.h](examples/config_receive.h) for templates).
-- Either SPI2 or SPI3 may be used (SPI1 is reserved for flash on most ESP32 variants).
+- Either SPI2_HOST or SPI3_HOST may be used (SPI1_HOST is reserved for flash on most ESP32 variants).
 - Supported ESP32 variants: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and other ESP-IDF compatible chips.
 - Each MCP25xxx device requires a CS (Chip Select) pin; optionally an INT (Interrupt) pin for event-driven reception.
 
@@ -385,6 +385,23 @@ This allows you to configure:
 - ✅ **Interrupt support** for efficient message reception
 - ✅ **Tested on** ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6
 - ✅ **Comprehensive examples** with utility functions and statistics
+
+## Related Projects
+
+- **[can-multibackend-idf](https://github.com/idf-can-bus/can-multibackend-idf)** - Unified interface supporting multiple CAN backends (TWAI, MCP2515 single/multi)
+  - Allows switching between different CAN controllers via Kconfig without code changes
+  - Includes this library as a submodule for multi-device scenarios
+  - Provides `can_dispatch` abstraction layer for single-device examples
+
+- **[twai-idf-can](https://github.com/idf-can-bus/twai-idf-can)** - High-level wrapper for ESP32's built-in TWAI (CAN) controller
+  - Simplified configuration and automatic error recovery
+  - Alternative backend for single-device applications
+
+- **[examples-utils-idf-can](https://github.com/idf-can-bus/examples-utils-idf-can)** - Common utility functions shared across all CAN examples
+  - Message formatting and display helpers
+  - Used as a submodule in both this project and twai-idf-can
+
+All projects are part of the **[idf-can-bus](https://github.com/idf-can-bus)** organization on GitHub.
 
 ## Acknowledgments
 
